@@ -22,9 +22,6 @@ public partial class MainWindow : Window
 {
     private const string PanelUrl = "https://frp.lingeringdawn.cloud/";
 
-    /// <summary>面板的用户中心，访问密钥在这里查看。</summary>
-    private const string UserCenterUrl = "https://frp.lingeringdawn.cloud/index.php?page=panel&module=profile";
-
     /// <summary>日志框最多保留的行数，防止长时间运行后无限堆积。</summary>
     private const int MaxLogLines = 800;
 
@@ -238,10 +235,7 @@ public partial class MainWindow : Window
         OpenExternalUrl(PanelUrl);
     }
 
-    private void UserCenterButton_Click(object sender, RoutedEventArgs e)
-    {
-        OpenExternalUrl(UserCenterUrl);
-    }
+
 
     /// <summary>
     /// 在浏览器里完成面板登录后，通过本机回环回调自动取回访问密钥。
@@ -780,7 +774,6 @@ public partial class MainWindow : Window
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add("打开窗口", null, (_, _) => ShowMainWindow());
         menu.Items.Add("打开面板", null, (_, _) => OpenExternalUrl(PanelUrl));
-        menu.Items.Add("用户中心", null, (_, _) => OpenExternalUrl(UserCenterUrl));
         menu.Items.Add("启动", null, (_, _) =>
         {
             _ = Dispatcher.InvokeAsync(async () => await StartTunnelAsync());

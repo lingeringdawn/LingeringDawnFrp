@@ -93,14 +93,10 @@
                             ToolTip="在浏览器里登录面板后，自动把访问密钥填入下方并保存" />
                     <Button x:Name="OpenPanelButton"
                             Content="打开面板"
-                            Style="{StaticResource GhostButton}"
+                            Style="{StaticResource PrimaryButton}"
                             Margin="8,0,0,0"
-                            Click="OpenPanelButton_Click" />
-                    <Button x:Name="UserCenterButton"
-                            Content="用户中心"
-                            Style="{StaticResource GhostButton}"
-                            Margin="8,0,0,0"
-                            Click="UserCenterButton_Click" />
+                            Click="OpenPanelButton_Click"
+                            ToolTip="在浏览器中打开面板（原「用户中心」入口已合并到这里）" />
                     <Button x:Name="CheckUpdateButton"
                             Content="检查更新"
                             Style="{StaticResource GhostButton}"
