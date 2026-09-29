@@ -46,6 +46,7 @@ public partial class MainWindow : Window
     private readonly ConfigManager _configManager;
     private readonly FrpProcessManager _frpProcessManager;
     private readonly StartupManager _startupManager;
+    private readonly PanelAuthService _panelAuthService;
     private readonly string _tokenFilePath;
     private readonly string _nodeIdFilePath;
 
@@ -92,6 +93,7 @@ public partial class MainWindow : Window
         _configManager = new ConfigManager();
         _frpProcessManager = new FrpProcessManager();
         _startupManager = new StartupManager();
+        _panelAuthService = new PanelAuthService();
         // 所有运行时文件都放在可写目录里（程序目录不可写时自动退回 %LOCALAPPDATA%）
         _tokenFilePath = Path.Combine(_configManager.DataDirectory, AccessKeyFileName);
         _nodeIdFilePath = Path.Combine(_configManager.DataDirectory, NodeIdFileName);
@@ -175,6 +177,51 @@ public partial class MainWindow : Window
     private void LoginButton_Click(object sender, RoutedEventArgs e)
     {
         OpenExternalUrl(LoginPageUrl);
+    }
+
+    /// <summary>
+    /// 在浏览器里完成面板登录后，通过本机回环回调自动取回访问密钥。
+    /// </summary>
+    private async void BrowserTokenButton_Click(object sender, RoutedEventArgs e)
+    {
+        BrowserTokenButton.IsEnabled = false;
+
+        try
+        {
+            AppendLog("正在打开浏览器获取访问密钥…若尚未登录面板，请先登录后再点一次。", LogLevel.Info);
+
+            var result = await _panelAuthService.AcquireTokenAsync();
+
+            if (!result.Success)
+            {
+                AppendLog(result.Message, LogLevel.Warning);
+                Report(result.Message, "获取密钥失败", MessageBoxImage.Warning, isAutoReconnect: false);
+                return;
+            }
+
+            if (!TokenPattern.IsMatch(result.Token))
+            {
+                AppendLog($"面板返回的密钥格式不正确（长度 {result.Token.Length}），已忽略。", LogLevel.Error);
+                Report("面板返回的密钥格式不正确，请稍后重试。", "获取密钥失败", MessageBoxImage.Warning, false);
+                return;
+            }
+
+            SetAccessKeyText(result.Token);
+            SaveManualAccessKey(result.Token);
+
+            AppendLog(
+                $"已获取账号 {result.Username} 的访问密钥（16 位十六进制），已填入输入框并保存。",
+                LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"获取访问密钥失败：{ex.Message}", LogLevel.Error);
+            Report($"获取访问密钥失败：{ex.Message}", "错误", MessageBoxImage.Error, false);
+        }
+        finally
+        {
+            BrowserTokenButton.IsEnabled = true;
+        }
     }
 
     /// <summary>
