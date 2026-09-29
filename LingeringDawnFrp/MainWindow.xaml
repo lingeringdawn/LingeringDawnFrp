@@ -42,21 +42,27 @@
                 </StackPanel>
             </StackPanel>
 
-            <Border Style="{StaticResource StatusPill}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse x:Name="StatusDot"
-                             Width="9"
-                             Height="9"
-                             Fill="{StaticResource NeutralBrush}"
-                             VerticalAlignment="Center"
-                             Margin="0,0,8,0" />
-                    <TextBlock x:Name="StatusTextBlock"
-                               Text="已停止"
-                               FontSize="12.5"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-            </Border>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="VersionText"
+                           Style="{StaticResource SubtitleText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0" />
+                <Border Style="{StaticResource StatusPill}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="StatusDot"
+                                 Width="9"
+                                 Height="9"
+                                 Fill="{StaticResource NeutralBrush}"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,8,0" />
+                        <TextBlock x:Name="StatusTextBlock"
+                                   Text="已停止"
+                                   FontSize="12.5"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
 
         <!-- ==================== 面板入口（原内置 WebView 区域） ==================== -->
@@ -95,6 +101,12 @@
                             Style="{StaticResource GhostButton}"
                             Margin="8,0,0,0"
                             Click="UserCenterButton_Click" />
+                    <Button x:Name="CheckUpdateButton"
+                            Content="检查更新"
+                            Style="{StaticResource GhostButton}"
+                            Margin="8,0,0,0"
+                            Click="CheckUpdateButton_Click"
+                            ToolTip="查询 GitHub 上是否有新版本" />
                 </StackPanel>
             </Grid>
         </Border>

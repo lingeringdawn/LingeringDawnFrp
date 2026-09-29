@@ -148,6 +148,79 @@ public partial class MainWindow : Window
         }
 
         AppendLog("就绪。请先在浏览器中打开面板获取访问密钥。", LogLevel.Info);
+
+        // 启动时静默检查更新：失败只写日志，不影响任何功能
+        VersionText.Text = $"v{UpdateChecker.CurrentVersion}";
+        _ = CheckUpdateAsync(silent: true);
+    }
+
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdateButton.IsEnabled = false;
+        try
+        {
+            await CheckUpdateAsync(silent: false);
+        }
+        finally
+        {
+            CheckUpdateButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>
+    /// 检查 GitHub 上是否有新版本。silent 为 true 时不弹窗（用于启动时的自动检查）。
+    /// </summary>
+    private async Task CheckUpdateAsync(bool silent)
+    {
+        var current = UpdateChecker.CurrentVersion;
+
+        if (!silent)
+        {
+            AppendLog("正在检查更新…", LogLevel.Info);
+        }
+
+        var info = await UpdateChecker.CheckAsync();
+
+        if (info is null)
+        {
+            VersionText.Text = $"v{current}";
+            if (!silent)
+            {
+                Report("无法连接 GitHub 获取版本信息，请检查网络后重试。", "检查更新", MessageBoxImage.Warning, false);
+            }
+
+            return;
+        }
+
+        if (info.HasUpdate)
+        {
+            VersionText.Text = $"v{current} → {info.Tag}";
+            AppendLog($"发现新版本 {info.Tag}（当前 v{current}）。发布页：{info.ReleaseUrl}", LogLevel.Info);
+
+            if (!silent)
+            {
+                var choice = WpfMessageBox.Show(
+                    $"发现新版本 {info.Tag}（当前 v{current}）。{Environment.NewLine}是否打开下载页面？",
+                    "检查更新",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (choice == MessageBoxResult.Yes)
+                {
+                    OpenExternalUrl(string.IsNullOrWhiteSpace(info.AssetUrl) ? info.ReleaseUrl : info.AssetUrl);
+                }
+            }
+
+            return;
+        }
+
+        VersionText.Text = $"v{current} · 已是最新";
+        AppendLog($"当前已是最新版本（v{current}）。", LogLevel.Info);
+
+        if (!silent)
+        {
+            Report($"当前已是最新版本（v{current}）。", "检查更新", MessageBoxImage.Information, false);
+        }
     }
 
     private async void StartButton_Click(object sender, RoutedEventArgs e)

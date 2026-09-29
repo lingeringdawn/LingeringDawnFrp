@@ -186,7 +186,10 @@ public sealed class PanelAuthService
     /// <summary>读取请求行并取出请求目标（形如 /?token=..&amp;state=..）。</summary>
     private static async Task<string> ReadRequestTargetAsync(TcpClient client)
     {
-        using var stream = client.GetStream();
+        // 这里千万不能 using 掉流：NetworkStream 被释放时会连带关闭底层 socket，
+        // 紧接着写响应就会抛 "The operation is not allowed on non-connected sockets"，
+        // 浏览器拿不到结果页，密钥也就回不到客户端。流的生命周期交给外层 using(client)。
+        var stream = client.GetStream();
         var buffer = new byte[4096];
         var read = await stream.ReadAsync(buffer).ConfigureAwait(false);
 
@@ -250,7 +253,7 @@ public sealed class PanelAuthService
                      $"Content-Length: {body.Length}\r\n" +
                      "Connection: close\r\n\r\n";
 
-        using var stream = client.GetStream();
+        var stream = client.GetStream();
         await stream.WriteAsync(Encoding.ASCII.GetBytes(header)).ConfigureAwait(false);
         await stream.WriteAsync(body).ConfigureAwait(false);
         await stream.FlushAsync().ConfigureAwait(false);
