@@ -300,6 +300,28 @@ public partial class MainWindow : Window
             _configManager.WriteConfig(config);
             AppendLog($"配置文件已写入: {_configManager.ConfigPath}");
 
+            // 服务端是 frps 0.29.0：实测只有 0.28.x / 0.29.x 的 frpc 能登录成功，
+            // 现代版本会以 "login to server failed: session shutdown" 失败 —— 那个报错
+            // 完全看不出是版本问题，所以这里先探测版本并明确提示。
+            var frpcVersion = _frpProcessManager.GetClientVersion();
+
+            if (frpcVersion is null)
+            {
+                AppendLog("未能读取 frpc 版本（frpc.exe 缺失或无法执行）。", LogLevel.Warning);
+            }
+            else if (IsCompatibleFrpcVersion(frpcVersion))
+            {
+                AppendLog($"frpc 版本 {frpcVersion}，与服务端 frps 0.29.0 兼容。");
+            }
+            else
+            {
+                AppendLog(
+                    $"⚠ 检测到 frpc {frpcVersion}，与服务端 frps 0.29.0 不兼容：" +
+                    "实测只有 0.28.x / 0.29.x 能登录成功，其他版本会以 " +
+                    "“login to server failed: session shutdown” 失败。请更换 frpc.exe。",
+                    LogLevel.Warning);
+            }
+
             _frpProcessManager.Start(_configManager.ConfigPath);
 
             // frpc 可能在启动后立刻退出（配置有误、服务端拒绝、token 失效）。
@@ -602,6 +624,16 @@ public partial class MainWindow : Window
     {
         LogBox.Document.Blocks.Clear();
         AppendLog("日志已清空。", LogLevel.Info);
+    }
+
+    /// <summary>
+    /// 服务端为官方原版 frps 0.29.0。2026-09-29 实测：
+    /// frpc 0.28.0 / 0.29.0 均可登录成功，0.52.3 直接失败。因此只接受 0.28.x / 0.29.x。
+    /// </summary>
+    private static bool IsCompatibleFrpcVersion(string version)
+    {
+        return version.StartsWith("0.28.", StringComparison.Ordinal)
+            || version.StartsWith("0.29.", StringComparison.Ordinal);
     }
 
     private void InitializeTrayIcon()

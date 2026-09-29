@@ -74,8 +74,27 @@
 **两个前提**：
 
 - `frpc.exe` 必须存在。脚本会依次在项目目录、`bin\Debug\net8.0-windows\`、
-  `bin\Release\net8.0-windows\<运行时>\publish\` 里查找；找不到会直接报错并列出应放置的位置。
+  `bin\Release\net8.0-windows\<运行时>\publish\` 里查找；找不到会自动从 frp 官方发布页下载
+  （见下方版本要求），也可用 `-FrpcPath` 手动指定。
 - 默认是**框架依赖**发布，目标机需要安装 **.NET 8 桌面运行时**；要免依赖请加 `-SelfContained`。
+
+### ⚠️ frpc 版本必须匹配服务端，不要用最新版
+
+服务端是**官方原版 frps 0.29.0**。2026-09-29 用同一份面板配置实测：
+
+| frpc 版本 | 对 frps 0.29.0 | 实测输出 |
+| --- | --- | --- |
+| 0.28.0 | ✅ 可用 | `login to server success` → `proxy added` → `start proxy success` |
+| **0.29.0（推荐，与服务端一致）** | ✅ 可用 | 同上 |
+| 0.52.3（现代版本） | ❌ **登录失败** | `login to server failed: session shutdown` |
+
+**从 frp 官网随手下载最新版会连不上**，而且报错完全看不出是版本问题。
+因此打包默认取 `0.29.0`；改动版本请用本地脚本的 `-FrpVersion`、或工作流的 `frp_version` 输入。
+
+客户端启动隧道前会运行 `frpc.exe --version` 并检查：不在 0.28.x / 0.29.x 范围内会明确警告。
+
+> 补充：面板生成的配置里有 `privilege_mode` 与 `api_server`，这两个字段在 0.29.0 中**并不存在**
+> （`privilege_mode` 是 0.9 时代的选项）。实测它们会被安全忽略、不影响登录，无需处理。
 
 ## 自动构建与发布
 

@@ -155,6 +155,63 @@ public sealed class FrpProcessManager : IDisposable
         Start(configPath);
     }
 
+    /// <summary>
+    /// 读取 frpc 版本（执行 frpc.exe --version）。读不到时返回 null。
+    ///
+    /// 存在的意义：服务端是 frps 0.29.0，实测只有 0.28.x / 0.29.x 的客户端能登录成功，
+    /// 现代版本（如 0.52.3）会直接以 "login to server failed: session shutdown" 失败 ——
+    /// 这个报错完全看不出是版本问题，所以要在启动前主动提示。
+    /// </summary>
+    public string? GetClientVersion()
+    {
+        try
+        {
+            var exePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "frpc.exe");
+            if (!File.Exists(exePath))
+            {
+                return null;
+            }
+
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = "--version",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            if (process is null)
+            {
+                return null;
+            }
+
+            var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+
+            if (!process.WaitForExit(3000))
+            {
+                try
+                {
+                    process.Kill(true);
+                }
+                catch
+                {
+                    // 忽略
+                }
+
+                return null;
+            }
+
+            var match = System.Text.RegularExpressions.Regex.Match(output, @"\d+\.\d+\.\d+");
+            return match.Success ? match.Value : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(e.Data))
