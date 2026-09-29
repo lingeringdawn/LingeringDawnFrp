@@ -1,0 +1,14 @@
+# 打包输出（build-release.ps1 生成）
+dist/
+
+# 构建输出
+**/bin/
+**/obj/
+
+# 用户级文件
+*.user
+.vs/
+
+# 运行时生成的文件
+frpc.ini
+*.log

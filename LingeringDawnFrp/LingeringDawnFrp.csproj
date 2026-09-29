@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+
+    <!-- 发布打包用：build-release.ps1 读取这里的 Version 作为压缩包文件名 -->
+    <Version>1.1.0</Version>
+    <Product>LingeringDawn Frp</Product>
+    <AssemblyTitle>LingeringDawn Frp</AssemblyTitle>
+    <Company>LingeringDawn</Company>
+    <Description>frp 隧道客户端：从 LingeringDawn 面板拉取配置并启动 frpc</Description>
+  </PropertyGroup>
+
+  <Target Name="CopyFrpcToOutput" AfterTargets="Build"
+          Condition="Exists('$(MSBuildProjectDirectory)\frpc.exe') and ( '$(Configuration)' == 'Debug' or $([System.String]::Copy('$(Configuration)').Contains('Test')) )">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\frpc.exe"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

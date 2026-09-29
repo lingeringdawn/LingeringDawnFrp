@@ -1,0 +1,112 @@
+name: 构建发布包
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（留空则读 csproj 的 <Version>；打 tag 时用 tag 名去掉前缀 v）'
+        required: false
+        type: string
+      frp_version:
+        description: 'frp 版本（决定下载哪个 frpc.exe，需与服务端 frps 一致）'
+        required: false
+        default: '0.29.0'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: 打包 win-x64
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 仓库里不放 10MB 的二进制，改为按需从官方发布页取，并与服务端 frps 版本保持一致
+      - name: 下载并放置 frpc.exe
+        shell: pwsh
+        env:
+          FRP_VERSION: ${{ inputs.frp_version || '0.29.0' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $version = $env:FRP_VERSION
+          if ([string]::IsNullOrWhiteSpace($version)) { $version = '0.29.0' }
+
+          $asset = "frp_${version}_windows_amd64.zip"
+          $url = "https://github.com/fatedier/frp/releases/download/v${version}/${asset}"
+          Write-Host "下载：$url"
+
+          $archive = Join-Path $env:RUNNER_TEMP $asset
+          Invoke-WebRequest -Uri $url -OutFile $archive
+
+          $extract = Join-Path $env:RUNNER_TEMP 'frp'
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+
+          $frpc = Get-ChildItem -LiteralPath $extract -Recurse -Filter 'frpc.exe' | Select-Object -First 1
+          if (-not $frpc) { throw "压缩包内未找到 frpc.exe：$asset" }
+
+          $target = 'LingeringDawnFrp\frpc.exe'
+          Copy-Item -LiteralPath $frpc.FullName -Destination $target -Force
+          Write-Host "frpc.exe 已就位：$((Get-Item -LiteralPath $target).Length) 字节"
+
+      - name: 计算版本号
+        id: version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $value = $env:INPUT_VERSION
+
+          if ([string]::IsNullOrWhiteSpace($value) -and $env:GITHUB_REF_TYPE -eq 'tag') {
+            $value = $env:GITHUB_REF_NAME -replace '^v', ''
+          }
+
+          if ([string]::IsNullOrWhiteSpace($value)) {
+            $match = Select-String -Path 'LingeringDawnFrp\LingeringDawnFrp.csproj' `
+              -Pattern '<Version>([^<]+)</Version>' | Select-Object -First 1
+            $value = if ($match) { $match.Matches[0].Groups[1].Value.Trim() } else { '1.0.0' }
+          }
+
+          "version=$value" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "版本号：$value"
+
+      - name: 打包
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
+        run: ./build-release.ps1 -Version $env:PACKAGE_VERSION
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: LingeringDawnFrp-${{ steps.version.outputs.version }}-win-x64
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      # 仅在打 tag 时创建 Release，普通提交只做构建验证
+      - name: 创建 GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: LingeringDawn Frp ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.sha256

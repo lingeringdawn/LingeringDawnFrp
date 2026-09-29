@@ -1,0 +1,13 @@
+# Build outputs
+bin/
+obj/
+
+# User-specific files
+*.user
+
+# Visual Studio working directory
+.vs/
+
+# Runtime generated files
+frpc.ini
+*.log
