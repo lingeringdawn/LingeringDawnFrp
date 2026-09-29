@@ -35,6 +35,12 @@ param(
     [ValidateSet('win-x64', 'win-x86', 'win-arm64')]
     [string]$Runtime = 'win-x64',
 
+    [string]$FrpcPath,
+
+    [string]$FrpVersion = '0.29.0',
+
+    [switch]$NoDownloadFrpc,
+
     [switch]$SelfContained,
 
     [switch]$SkipZip
@@ -68,7 +74,7 @@ Write-Info "版本：$Version"
 Write-Info "运行时：$Runtime（自包含：$($SelfContained.IsPresent)）"
 
 # ---------------------------------------------------------------- frpc.exe
-Write-Step '查找 frpc.exe'
+Write-Step '准备 frpc.exe'
 
 $frpcCandidates = @(
     (Join-Path $projectDir 'frpc.exe'),
@@ -77,17 +83,75 @@ $frpcCandidates = @(
     (Join-Path $projectDir "bin\Release\net8.0-windows\frpc.exe")
 )
 
-$frpcPath = $frpcCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+$resolvedFrpc = $null
 
-if (-not $frpcPath) {
+if (-not [string]::IsNullOrWhiteSpace($FrpcPath)) {
+    if (-not (Test-Path -LiteralPath $FrpcPath)) {
+        throw "指定的 -FrpcPath 不存在：$FrpcPath"
+    }
+
+    $resolvedFrpc = (Resolve-Path -LiteralPath $FrpcPath).Path
+    Write-Ok "使用 -FrpcPath 指定的文件：$resolvedFrpc"
+}
+else {
+    $resolvedFrpc = $frpcCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+}
+
+# 本地找不到就按需从 frp 官方发布页取一个：仓库里不放 10MB 二进制，CI 也是同样做法
+if (-not $resolvedFrpc -and -not $NoDownloadFrpc) {
+    Write-Info "本地未找到 frpc.exe，改为从 frp 官方下载 v$FrpVersion …"
+
+    $asset = "frp_${FrpVersion}_windows_amd64.zip"
+    $url = "https://github.com/fatedier/frp/releases/download/v${FrpVersion}/${asset}"
+    $tempArchive = Join-Path ([System.IO.Path]::GetTempPath()) $asset
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "frp-$FrpVersion"
+
+    Write-Info "下载：$url"
+
+    try {
+        if (Test-Path -LiteralPath $tempDir) {
+            Remove-Item -LiteralPath $tempDir -Recurse -Force
+        }
+
+        Invoke-WebRequest -Uri $url -OutFile $tempArchive -UseBasicParsing
+        Expand-Archive -LiteralPath $tempArchive -DestinationPath $tempDir -Force
+
+        $found = Get-ChildItem -LiteralPath $tempDir -Recurse -Filter 'frpc.exe' | Select-Object -First 1
+        if (-not $found) {
+            throw "下载的压缩包里没有 frpc.exe"
+        }
+
+        $resolvedFrpc = Join-Path $projectDir 'frpc.exe'
+        Copy-Item -LiteralPath $found.FullName -Destination $resolvedFrpc -Force
+        Write-Ok "已下载并放置到：$resolvedFrpc"
+    }
+    catch {
+        Write-Host "  自动下载失败：$($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    finally {
+        Remove-Item -LiteralPath $tempArchive -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+if (-not $resolvedFrpc) {
     throw @"
-未找到 frpc.exe，发布包必须带上它。
-请把 frpc.exe 放到以下任一位置后重试：
-$(($frpcCandidates | ForEach-Object { "  - $_" }) -join "`n")
+未找到 frpc.exe，而发布包必须带上它。三种解决办法（任选其一）：
+
+  1) 手动放置到以下任一位置：
+$(($frpcCandidates | ForEach-Object { "       $_" }) -join "`n")
+
+  2) 用参数指定路径：
+       .\build-release.ps1 -FrpcPath 'D:\某处\frpc.exe'
+
+  3) 让脚本自动下载（默认已开启，可用 -NoDownloadFrpc 关闭）：
+       .\build-release.ps1 -FrpVersion 0.29.0
+
+  注意：frpc 版本需与服务端 frps 一致，否则可能连不上。
 "@
 }
 
-Write-Ok "使用：$frpcPath（$([math]::Round((Get-Item -LiteralPath $frpcPath).Length / 1MB, 2)) MB）"
+Write-Ok "使用：$resolvedFrpc（$([math]::Round((Get-Item -LiteralPath $resolvedFrpc).Length / 1MB, 2)) MB）"
 
 # ---------------------------------------------------------------- 发布
 Write-Step 'dotnet publish'
@@ -121,7 +185,7 @@ if ($LASTEXITCODE -ne 0) {
 # ---------------------------------------------------------------- 补充文件
 Write-Step '整理发布目录'
 
-Copy-Item -LiteralPath $frpcPath -Destination (Join-Path $stageDir 'frpc.exe') -Force
+Copy-Item -LiteralPath $resolvedFrpc -Destination (Join-Path $stageDir 'frpc.exe') -Force
 Write-Ok '已放入 frpc.exe'
 
 $readme = Join-Path $projectDir 'README.md'

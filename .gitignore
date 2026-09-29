@@ -5,6 +5,9 @@ dist/
 **/bin/
 **/obj/
 
+# frpc.exe：本地打包时脚本可能会自动下载到项目目录，绝不能提交进仓库
+LingeringDawnFrp/frpc.exe
+
 # 用户级文件
 *.user
 .vs/
