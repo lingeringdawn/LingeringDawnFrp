@@ -25,10 +25,6 @@ public partial class MainWindow : Window
     /// <summary>面板的用户中心，访问密钥在这里查看。</summary>
     private const string UserCenterUrl = "https://frp.lingeringdawn.cloud/index.php?page=panel&module=profile";
 
-    // 面板已改为「博客账号 SSO」登录：?page=sso 会 302 到博客授权页；
-    // ?page=login 现在只是应急的本地密码登录，不应再作为主入口。
-    private const string LoginPageUrl = "https://frp.lingeringdawn.cloud/index.php?page=sso";
-
     /// <summary>日志框最多保留的行数，防止长时间运行后无限堆积。</summary>
     private const int MaxLogLines = 800;
 
@@ -172,11 +168,6 @@ public partial class MainWindow : Window
     private void UserCenterButton_Click(object sender, RoutedEventArgs e)
     {
         OpenExternalUrl(UserCenterUrl);
-    }
-
-    private void LoginButton_Click(object sender, RoutedEventArgs e)
-    {
-        OpenExternalUrl(LoginPageUrl);
     }
 
     /// <summary>

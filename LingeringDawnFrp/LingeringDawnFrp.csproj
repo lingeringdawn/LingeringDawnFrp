@@ -9,7 +9,7 @@
     <LangVersion>12.0</LangVersion>
 
     <!-- 发布打包用：build-release.ps1 读取这里的 Version 作为压缩包文件名 -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>LingeringDawn Frp</Product>
     <AssemblyTitle>LingeringDawn Frp</AssemblyTitle>
     <Company>LingeringDawn</Company>

@@ -95,12 +95,6 @@
                             Style="{StaticResource GhostButton}"
                             Margin="8,0,0,0"
                             Click="UserCenterButton_Click" />
-                    <Button x:Name="LoginButton"
-                            Content="授权登录"
-                            Style="{StaticResource GhostButton}"
-                            Margin="8,0,0,0"
-                            Click="LoginButton_Click"
-                            ToolTip="打开面板的博客账号授权登录页" />
                 </StackPanel>
             </Grid>
         </Border>
