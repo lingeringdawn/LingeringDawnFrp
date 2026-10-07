@@ -20,7 +20,7 @@ namespace LingeringDawnFrp;
 
 public partial class MainWindow : Window
 {
-    private const string PanelUrl = "https://frp.lingeringdawn.cloud/";
+    private const string PanelUrl = "https://frp.www8ld.com/";
 
     /// <summary>日志框最多保留的行数，防止长时间运行后无限堆积。</summary>
     private const int MaxLogLines = 800;

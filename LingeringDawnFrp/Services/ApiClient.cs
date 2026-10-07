@@ -28,7 +28,7 @@ public sealed class ApiException : Exception
 
 public sealed class ApiClient
 {
-    private const string Endpoint = "https://frp.lingeringdawn.cloud/api/index.php";
+    private const string Endpoint = "https://frp.www8ld.com/api/index.php";
 
     private static readonly HttpClient HttpClient = new()
     {

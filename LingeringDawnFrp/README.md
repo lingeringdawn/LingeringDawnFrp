@@ -96,6 +96,25 @@
 > 补充：面板生成的配置里有 `privilege_mode` 与 `api_server`，这两个字段在 0.29.0 中**并不存在**
 > （`privilege_mode` 是 0.9 时代的选项）。实测它们会被安全忽略、不影响登录，无需处理。
 
+## 服务器地址（面板域名）
+
+客户端访问面板的地址集中在三处常量，**改域名时三个都要改**：
+
+| 文件 | 常量 | 用途 |
+| --- | --- | --- |
+| `Services/ApiClient.cs` | `Endpoint` | 拉取 frpc 配置（`api/index.php`） |
+| `Services/PanelAuthService.cs` | `AuthPageUrl` | 浏览器取密钥的授权页（`index.php?page=app_auth`） |
+| `MainWindow.xaml.cs` | `PanelUrl` | 「打开面板」按钮 |
+
+当前为 **`frp.www8ld.com`**。2026-10 面板域名由 `frp.lingeringdawn.cloud` 迁到
+`frp.www8ld.com`（旧域名已停止解析），客户端若仍指向旧域名，症状是：
+
+- 启动隧道时报连接失败 / 「接口返回状态码 …」
+- 「浏览器获取密钥」打开的是打不开的页面
+
+> 配置里的 `server_addr` 用的是**节点 IP**（不是域名），所以域名变更不影响
+> frpc 与 frps 的实际连接；受影响的只有「客户端 ↔ 面板」这一段。
+
 ## 自动构建与发布
 
 仓库自带 GitHub Actions 工作流 `.github/workflows/release.yml`：

@@ -49,7 +49,7 @@ public sealed class PanelAuthResult
 /// </summary>
 public sealed class PanelAuthService
 {
-    private const string AuthPageUrl = "https://frp.lingeringdawn.cloud/index.php?page=app_auth";
+    private const string AuthPageUrl = "https://frp.www8ld.com/index.php?page=app_auth";
 
     private static readonly TimeSpan CallbackTimeout = TimeSpan.FromMinutes(3);
 
